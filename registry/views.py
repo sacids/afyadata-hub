@@ -32,22 +32,33 @@ class ProjectDiscoveryView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+
 class RegisterProjectView(APIView):
     """
     Explicit APIView for Instance Servers to register projects.
     Uses our custom permission class for API Key authentication.
     """
-
+    
     permission_classes = [HasValidInstanceKey]
-
+    
     def post(self, request):
         serializer = PublicProjectSerializer(data=request.data)
-
+        
         if serializer.is_valid():
-            # Save while linking to the instance identified by the API Key
-            # request.instance_auth was set by our HasValidInstanceKey permission
-            serializer.save(registered_by=request.instance_auth)
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
+            validated_data = serializer.validated_data
+            remote_project_id = validated_data.pop('remote_project_id')
+            instance = request.instance_auth
+            
+            # Update or create based on remote_project_id AND registered_by
+            project, created = PublicProject.objects.update_or_create(
+                remote_project_id=remote_project_id,
+                registered_by=instance,
+                defaults=validated_data
+            )
+            
+            response_serializer = PublicProjectSerializer(project)
+            status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+            
+            return Response(response_serializer.data, status=status_code)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

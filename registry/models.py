@@ -17,7 +17,10 @@ class PublicProject(models.Model):
     remote_project_id = models.CharField(max_length=100, help_text="The ID of the project on the local instance")
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
-
+    
+    class Meta:
+        unique_together = ['registered_by', 'remote_project_id']
+        
     def __str__(self):
         return f"{self.title} ({self.project_code})"
     
