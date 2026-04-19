@@ -29,6 +29,7 @@ class PublicProject(models.Model):
 
 class AuthorizedInstance(models.Model):
     name = models.CharField(max_length=255, help_text="Name of the instance (e.g., Southern Highlands Server)")
+    country = models.CharField(max_length=255, help_text="Country where the instance is located")
     api_key = models.CharField(max_length=128, unique=True, editable=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -40,4 +41,4 @@ class AuthorizedInstance(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.country})"

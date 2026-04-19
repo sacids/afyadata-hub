@@ -22,15 +22,23 @@ class ProjectDiscoveryView(APIView):
         search_query = request.query_params.get("search", None)
         if search_query:
             projects = projects.filter(
-                Q(name__icontains=search_query)
+                Q(title__icontains=search_query)
                 | Q(description__icontains=search_query)
                 | Q(project_code__icontains=search_query)
+                | Q(registered_by__country__icontains=search_query)
+                | Q(registered_by__name__icontains=search_query)
             )
 
-        # 3. Serialize and Return
+        # 3. Handle country filter if present
+        country_filter = request.query_params.get("country", None)
+        if country_filter:
+            projects = projects.filter(
+                registered_by__country__iexact=country_filter
+            )
+
+        # 4. Serialize and Return
         serializer = PublicProjectSerializer(projects, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 
 class RegisterProjectView(APIView):
@@ -48,6 +56,9 @@ class RegisterProjectView(APIView):
             validated_data = serializer.validated_data
             remote_project_id = validated_data.pop('remote_project_id')
             instance = request.instance_auth
+            
+            # Remove source fields from validated_data if present
+            validated_data.pop('registered_by', None)
             
             # Update or create based on remote_project_id AND registered_by
             project, created = PublicProject.objects.update_or_create(
